@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16.3)
 
-project(lecture3_homework)
+project(YOLO_neural_network)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_BUILD_TYPE Debug)
@@ -26,18 +26,15 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 include_directories(${OpenCV_INCLUDE_DIRS})
 include_directories(${PROJECT_SOURCE_DIR})
 
-#生成三个静态库io  auto_aim  tools
-add_subdirectory(io)                              
+#生成两个静态库 auto_aim 和 tools
 add_subdirectory(tasks)
 add_subdirectory(tools)
 
-#生成两个可执行程序
-add_executable(main main.cpp)                 #程序入口，负责组装和调度 
-add_executable(example io/example.cpp)        #IO 模块的单独示例程序
+#生成主程序（统一处理图片与视频输入）
+add_executable(main main.cpp)
 
 target_link_libraries(main PRIVATE                 
     tools
-    io
     auto_aim
     fmt::fmt
     yaml-cpp
@@ -45,8 +42,3 @@ target_link_libraries(main PRIVATE
     ${OpenCV_LIBS}
 )
 
-target_link_libraries(example PRIVATE
-    io
-    ${OpenCV_LIBS}
-    yaml-cpp
-)
