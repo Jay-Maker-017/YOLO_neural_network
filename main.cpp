@@ -1,4 +1,4 @@
-//   图片/视频  →  识别器（tasks 模块 YOLO）  →  画图显示
+//   图片/视频  →  识别器（tasks 模块 YOLO）  →  画图显示并保存结果
 //
 //   main.cpp 里只做"调度"，不实现任何算法：
 //   图片与视频输入在本文件处理；神经网络推理与后处理在 tasks/ 里
@@ -8,6 +8,9 @@
 //   ./build/main xxx.jpg                    识别单张图片
 //   ./build/main xxx.mp4                    识别视频
 //
+//   绘制结果保存（参考 tradition 的本地保存做法）：
+//   图片 → detect_result.jpg；视频 → detect_result.avi（MJPG，帧率沿用输入）
+//
 //   因为下面写的 "configs/yolo.yaml" 和 yaml 里的 "assets/yolov5.xml" 都是相对路径
 
 #include <algorithm>
@@ -15,6 +18,8 @@
 #include <iostream>  
 #include <list>   
 #include <string>   
+
+#include <cmath>  // std::isfinite：校验视频帧率是否有效
 
 #include <fmt/format.h>  // fmt::format，用来拼显示用的文字
 
@@ -107,6 +112,10 @@ int main(int argc, char ** argv)
   }
   std::filesystem::current_path(project_root);
 
+  // 绘制结果的保存路径（相对项目根目录，与 tradition 的本地保存一致）
+  const std::string output_image = "detect_result.jpg";
+  const std::string output_video = "detect_result.avi";
+
   const std::string source = argc == 2 ? argv[1] : "video/video_combat.avi";
   cv::VideoCapture cap;
   // imread 强制转成 8 位三通道 BGR，也会丢弃 PNG 的 alpha 通道。
@@ -126,6 +135,23 @@ int main(int argc, char ** argv)
   // 单张图片用 waitKey(0) 暂停；视频用 waitKey(1) 连续播放。
   const bool single_image = !still_image.empty();
 
+  // 视频模式：创建结果视频写入器（MJPG 编码，帧率与尺寸沿用输入视频）。
+  // 与 tradition 一致：先尝试打开，失败时只警告，继续处理但不保存视频。
+  cv::VideoWriter writer;
+  if (!single_image) {
+    double fps = cap.get(cv::CAP_PROP_FPS);
+    if (!(fps > 0.0) || !std::isfinite(fps)) fps = 30.0;
+    const cv::Size frame_size(
+      static_cast<int>(cap.get(cv::CAP_PROP_FRAME_WIDTH)),
+      static_cast<int>(cap.get(cv::CAP_PROP_FRAME_HEIGHT)));
+    writer.open(output_video, cv::VideoWriter::fourcc('M', 'J', 'P', 'G'), fps, frame_size, true);
+    if (writer.isOpened()) {
+      std::cout << "结果视频输出: " << output_video << " (" << fps << " FPS)" << std::endl;
+    } else {
+      std::cerr << "[警告] 无法创建结果视频: " << output_video
+                << "；将继续处理但不保存视频。" << std::endl;
+    }
+  }
 
   // 构造识别器
   std::filesystem::create_directory("logs");
@@ -174,23 +200,39 @@ int main(int argc, char ** argv)
     }
     std::cout << std::endl;
 
-    // 显示
-    cv::Mat display = img.clone();
-    draw_armors(display, armors);
+    // 绘制结果（保持输入原始分辨率，用于保存）
+    cv::Mat result = img.clone();
+    draw_armors(result, armors);
 
+    // 保存绘制结果：图片写一张结果图，视频逐帧写入结果文件；
+    // 必须在缩放显示之前保存，保证保存的是原始分辨率画面。
+    if (single_image) {
+      if (cv::imwrite(output_image, result)) {
+        std::cout << "结果图片已保存: " << output_image << std::endl;
+      } else {
+        std::cerr << "无法保存结果图片: " << output_image << std::endl;
+      }
+    } else if (writer.isOpened()) {
+      writer.write(result);
+    }
+
+    // 显示：仅在显示副本上缩放，不影响保存的结果
     const int min_display_width = 460;    // 小于这个宽度就放大，不然看不清角点
     const int max_display_width = 1280;   // 大于这个宽度就缩小，不然超出屏幕
 
-    if (display.cols < min_display_width) {
+    cv::Mat display;
+    if (result.cols < min_display_width) {
       // 太窄（画面太小）：等比放大到 min_display_width
-      const double scale = static_cast<double>(min_display_width) / display.cols;
-      cv::resize(display, display, {}, scale, scale);
-    } else if (display.cols > max_display_width) {
+      const double scale = static_cast<double>(min_display_width) / result.cols;
+      cv::resize(result, display, {}, scale, scale);
+    } else if (result.cols > max_display_width) {
       // 太宽：等比缩小到 max_display_width
-      const double scale = static_cast<double>(max_display_width) / display.cols;
-      cv::resize(display, display, {}, scale, scale);
+      const double scale = static_cast<double>(max_display_width) / result.cols;
+      cv::resize(result, display, {}, scale, scale);
+    } else {
+      // 宽度落在 [min, max] 区间内时不动，保持原始分辨率
+      display = result;
     }
-    // 宽度落在 [min, max] 区间内时不动，保持原始分辨率
 
     cv::imshow("img", display);
 
@@ -204,6 +246,17 @@ int main(int argc, char ** argv)
     frame_count++;
   }
 
-  //   循环结束，函数即将返回
+  //   循环结束：视频模式下释放写入器并报告结果文件
+  if (!single_image) {
+    const bool video_saved = writer.isOpened() && frame_count > 0;
+    writer.release();
+    if (video_saved) {
+      std::cout << "结果视频已保存: " << output_video << std::endl;
+    } else if (frame_count > 0) {
+      std::cout << "结果视频未保存（VideoWriter 初始化失败）。" << std::endl;
+    }
+  }
+
+  //   函数即将返回
   return 0;
 }

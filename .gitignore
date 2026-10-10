@@ -1,1 +1,5 @@
 build
+
+# 运行生成的结果文件
+detect_result.jpg
+detect_result.avi
