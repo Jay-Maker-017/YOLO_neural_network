@@ -1,0 +1,17 @@
+yolo_name: yolov5
+classify_model: assets/tiny_resnet.onnx
+yolov5_model_path: assets/yolov5.xml
+device: CPU
+min_confidence: 0.8  #置信度，低于 0.8 的装甲板被 erase 掉
+use_traditional: true
+roi: 
+  x: 420
+  y: 50
+  width: 600
+  height: 600
+
+use_roi: false
+threshold: 150
+
+# use_traditional,threshold,roi,use_roi 这几个参数是传统方法的参数，YOLOv5 不用管它们。
+# 属于残骸
