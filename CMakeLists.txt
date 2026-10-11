@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16.3)
+cmake_minimum_required(VERSION 3.22)
 
 project(YOLO_neural_network)
 
@@ -22,11 +22,15 @@ if(EXISTS "${_openvino_candidate}/OpenVINOConfig.cmake")
 endif()
 find_package(OpenVINO REQUIRED)
 
+# NNdeployment 的 C++20/OpenVINO 设置限制在子目录作用域；先添加部署库，
+# 使其目标可由后续 auto_aim 链接。
+add_subdirectory(NNdeployment)
+
 include_directories(${EIGEN3_INCLUDE_DIR})
 include_directories(${OpenCV_INCLUDE_DIRS})
 include_directories(${PROJECT_SOURCE_DIR})
 
-#生成两个静态库 auto_aim 和 tools
+#生成静态库 auto_aim、tools 和 NNdeployment_lib
 add_subdirectory(tasks)
 add_subdirectory(tools)
 

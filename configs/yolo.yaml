@@ -1,7 +1,28 @@
 yolo_name: yolov5
 yolov5_model_path: assets/yolov5.xml
+yolov5_legacy_infantry_v5_model_path: models/openvino/Infantry-v5n-fp16-20250725/Infantry-v5n-Release-20260725.xml
 device: CPU
-min_confidence: 0.75  #置信度，低于 0.75 的装甲板被 erase 掉
+min_confidence: 0.75  # 旧配置兼容项；新配置使用下方各自的 final_confidence_threshold
+nndeployment_json: configs/nndeployment.json
+nndeployment_model_dir: models/openvino
+my_color: 2  # 离线演示模式：保留双方结果
+
+# 各选择项使用独立阈值：YOLOV5 管线读取本文件；NNdeployment 的检测分数阈值
+# 分别配置在 configs/nndeployment.json 的 armor_v5 / armor_v8 节点。
+model_thresholds:
+  yolov5:
+    inference_score_threshold: 0.7
+    nms_iou_threshold: 0.3
+    final_confidence_threshold: 0.75
+  infantry_v5:
+    final_confidence_threshold: 0.75
+  infantry_v8:
+    final_confidence_threshold: 0.75
+  infantry_v5_legacy:
+    inference_score_threshold: 0.7
+    nms_iou_threshold: 0.3
+    final_confidence_threshold: 0.75
+
 use_traditional: true
 roi: 
   x: 420

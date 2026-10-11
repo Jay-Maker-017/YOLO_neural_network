@@ -4,19 +4,22 @@
 //   图片与视频输入在本文件处理；神经网络推理与后处理在 tasks/ 里
 //
 //   运行方式：
-//   ./build/main                            默认播放 video/video_combat.avi
-//   ./build/main xxx.jpg                    识别单张图片
-//   ./build/main xxx.mp4                    识别视频
+//   ./build/main                                      默认视频 + main 中配置的模型
+//   ./build/main xxx.jpg                              识别单张图片
+//   ./build/main xxx.mp4 infantry_v8                  指定输入和模型
+//   可选模型：yolov5 / infantry_v5 / infantry_v8 / infantry_v5_legacy
 //
 //   绘制结果保存（参考 tradition 的本地保存做法）：
-//   图片 → detect_result.jpg；视频 → detect_result.avi（MJPG，帧率沿用输入）
+//   图片/视频 → detect_result_<模型名>.jpg/.avi（MJPG，帧率沿用输入）
 //
 //   因为下面写的 "configs/yolo.yaml" 和 yaml 里的 "assets/yolov5.xml" 都是相对路径
 
 #include <algorithm>
+#include <cstdlib>
 #include <filesystem>  
 #include <iostream>  
 #include <list>   
+#include <memory>
 #include <string>   
 
 #include <cmath>  // std::isfinite：校验视频帧率是否有效
@@ -84,10 +87,14 @@ void draw_armors(cv::Mat & img, const std::list<auto_aim::Armor> & armors)
 
 int main(int argc, char ** argv)
 {
-  if (argc > 2) {
-    std::cerr << "用法: " << argv[0] << " [图片或视频路径]" << std::endl;
+  // 默认切换变量；设为空字符串时回退到 configs/yolo.yaml 的 yolo_name。
+  // 可选：yolov5 / infantry_v5 / infantry_v8 / infantry_v5_legacy（v5n 用旧管线）。
+  std::string model_name = "infantry_v5";
+  if (argc > 3) {
+    std::cerr << "用法: " << argv[0] << " [图片或视频路径] [模型名]" << std::endl;
     return 1;
   }
+  if (argc == 3) model_name = argv[2];
 
   // 从当前目录或可执行文件所在目录向上寻找项目根目录，
   // 确保 CMake Tools 从 build/ 启动时也能找到配置和模型。
@@ -111,12 +118,26 @@ int main(int argc, char ** argv)
     return 1;
   }
   std::filesystem::current_path(project_root);
+  const bool show_window = std::getenv("DISPLAY") != nullptr ||
+                           std::getenv("WAYLAND_DISPLAY") != nullptr;
+
+  // 项目根目录已设置，配置与模型相对路径可稳定解析。
+  std::filesystem::create_directories("logs");
+  std::unique_ptr<auto_aim::YOLO> yolo;
+  try {
+    yolo = std::make_unique<auto_aim::YOLO>("configs/yolo.yaml", model_name);
+  } catch (const std::exception & e) {
+    std::cerr << "识别器初始化失败: " << e.what() << std::endl;
+    return 1;
+  }
+  const std::string selected_model = yolo->model_name();
+  std::cout << "使用模型: " << selected_model << std::endl;
 
   // 绘制结果的保存路径（相对项目根目录，与 tradition 的本地保存一致）
-  const std::string output_image = "detect_result.jpg";
-  const std::string output_video = "detect_result.avi";
+  const std::string output_image = "detect_result_" + selected_model + ".jpg";
+  const std::string output_video = "detect_result_" + selected_model + ".avi";
 
-  const std::string source = argc == 2 ? argv[1] : "video/video_combat.avi";
+  const std::string source = argc >= 2 ? argv[1] : "video/video_combat.avi";
   cv::VideoCapture cap;
   // imread 强制转成 8 位三通道 BGR，也会丢弃 PNG 的 alpha 通道。
   cv::Mat still_image = cv::imread(source, cv::IMREAD_COLOR);
@@ -153,13 +174,6 @@ int main(int argc, char ** argv)
     }
   }
 
-  // 构造识别器
-  std::filesystem::create_directory("logs");
-
-  // 构造参数只有"配置文件路径"，其余参数（模型路径、推理设备、阈值……）
-  // 全部由 YOLO 自己从 yaml 里读。
-  // 项目根目录已在上面设置为当前目录，配置与模型相对路径可稳定解析。
-  auto_aim::YOLO yolo("configs/yolo.yaml");
   std::cout << "识别器初始化完成" << std::endl;
 
 
@@ -189,7 +203,7 @@ int main(int argc, char ** argv)
     // 识别
     // detect 返回一个装甲板列表（可能一个都没有，size() 为 0）。
     // 第二个参数是帧号，仅用于日志和调试，不传也可以（默认 -1）。
-    std::list<auto_aim::Armor> armors = yolo.detect(img, frame_count);
+    std::list<auto_aim::Armor> armors = yolo->detect(img, frame_count);
 
     // 打印结果到终端
     std::cout << "第 " << frame_count << " 帧: 检测到 " << armors.size() << " 个装甲板";
@@ -234,9 +248,9 @@ int main(int argc, char ** argv)
       display = result;
     }
 
-    cv::imshow("img", display);
+    if (show_window) cv::imshow("img", display);
 
-    const int key = cv::waitKey(single_image ? 0 : 1);
+    const int key = show_window ? cv::waitKey(single_image ? 0 : 1) : -1;
     if (key == 'q') {
       // 按 q 退出
       std::cout << "收到退出指令，程序结束" << std::endl;

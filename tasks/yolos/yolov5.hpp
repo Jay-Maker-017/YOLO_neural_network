@@ -5,7 +5,6 @@
 #include <opencv2/opencv.hpp>
 #include <openvino/openvino.hpp>
 #include <string>
-#include <vector>
 
 #include "tasks/armor.hpp"
 #include "tasks/yolo.hpp"
@@ -15,7 +14,9 @@ namespace auto_aim
 class YOLOV5 : public YOLOBase
 {
 public:
-  YOLOV5(const std::string & config_path, bool debug);
+  YOLOV5(
+    const std::string & config_path, bool debug, const std::string & model_path_override = "",
+    const std::string & threshold_key = "yolov5");
 
   std::list<Armor> detect(const cv::Mat & bgr_img, int frame_count) override;
 
@@ -26,8 +27,8 @@ private:
   bool debug_, use_roi_, use_traditional_;
 
   const int class_num_ = 13;
-  const float nms_threshold_ = 0.3;
-  const float score_threshold_ = 0.7;
+  float nms_threshold_ = 0.3;
+  float score_threshold_ = 0.7;
   double min_confidence_, binary_threshold_;
 
   ov::Core core_;
