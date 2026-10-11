@@ -1,18 +1,11 @@
-//   图片/视频  →  识别器（tasks 模块 YOLO）  →  画图显示并保存结果
-//
-//   main.cpp 里只做"调度"，不实现任何算法：
-//   图片与视频输入在本文件处理；神经网络推理与后处理在 tasks/ 里
+//   main.cpp 里只做"调度",处理,不实现任何算法
+//   神经网络推理与后处理在 tasks/ 里
 //
 //   运行方式：
 //   ./build/main                                      默认视频 + main 中配置的模型
 //   ./build/main xxx.jpg                              识别单张图片
 //   ./build/main xxx.mp4 infantry_v8                  指定输入和模型
-//   可选模型：yolov5 / infantry_v5 / infantry_v8 / infantry_v5_legacy
-//
-//   绘制结果保存（参考 tradition 的本地保存做法）：
-//   图片/视频 → detect_result_<模型名>.jpg/.avi（MJPG，帧率沿用输入）
-//
-//   因为下面写的 "configs/yolo.yaml" 和 yaml 里的 "assets/yolov5.xml" 都是相对路径
+//   可选模型：yolov5 / infantry_v5 / infantry_v8
 
 #include <algorithm>
 #include <cstdlib>
@@ -22,29 +15,22 @@
 #include <memory>
 #include <string>   
 
-#include <cmath>  // std::isfinite：校验视频帧率是否有效
+#include <cmath> 
 
-#include <fmt/format.h>  // fmt::format，用来拼显示用的文字
+#include <fmt/format.h> 
 
 #include <opencv2/opencv.hpp>
 
-#include "tasks/armor.hpp"       // Armor / COLORS / ARMOR_NAMES / ARMOR_TYPES
-#include "tasks/yolo.hpp"        // auto_aim::YOLO：现成的识别器
-#include "tools/img_tools.hpp"   // tools::draw_points / draw_text：画图小工具
+#include "tasks/armor.hpp" 
+#include "tasks/yolo.hpp"        
+#include "tools/img_tools.hpp"   // 画图工具
 
 
-namespace   //用了“内部链接”写法，使得在main.cpp之外难以引用它
+namespace
 {
-/**
- * 把识别到的装甲板画到图像上
- *
- * 这里画两种东西：
- *   1. 装甲板的 4 个角点（Armor::points，顺序固定为左上、左下、右下、右上），绿色
- *   2. 类别文字（颜色 / 图案编号 / 大小 / 置信度），黄色，在装甲板上方水平居中
- *
- * @param img    要画的图（会直接改到传进来的那张图上）
- * @param armors 识别结果
- */
+//把识别到的装甲板画到图像上,画两种东西：
+//   1. 装甲板的 4 个绿色角点
+//   2. 黄色类别文字（颜色,图案编号,置信度）
 void draw_armors(cv::Mat & img, const std::list<auto_aim::Armor> & armors)
 {
   // 字体设置
@@ -88,8 +74,8 @@ void draw_armors(cv::Mat & img, const std::list<auto_aim::Armor> & armors)
 int main(int argc, char ** argv)
 {
   // 默认切换变量；设为空字符串时回退到 configs/yolo.yaml 的 yolo_name。
-  // 可选：yolov5 / infantry_v5 / infantry_v8 / infantry_v5_legacy（v5n 用旧管线）。
-  std::string model_name = "infantry_v5";
+  // 可选：yolov5 / infantry_v5 / infantry_v8 。
+  std::string model_name = "infantry_v8";
   if (argc > 3) {
     std::cerr << "用法: " << argv[0] << " [图片或视频路径] [模型名]" << std::endl;
     return 1;
@@ -133,7 +119,7 @@ int main(int argc, char ** argv)
   const std::string selected_model = yolo->model_name();
   std::cout << "使用模型: " << selected_model << std::endl;
 
-  // 绘制结果的保存路径（相对项目根目录，与 tradition 的本地保存一致）
+  // 绘制结果的保存路径
   const std::string output_image = "detect_result_" + selected_model + ".jpg";
   const std::string output_video = "detect_result_" + selected_model + ".avi";
 
@@ -156,8 +142,7 @@ int main(int argc, char ** argv)
   // 单张图片用 waitKey(0) 暂停；视频用 waitKey(1) 连续播放。
   const bool single_image = !still_image.empty();
 
-  // 视频模式：创建结果视频写入器（MJPG 编码，帧率与尺寸沿用输入视频）。
-  // 与 tradition 一致：先尝试打开，失败时只警告，继续处理但不保存视频。
+  // 视频模式：创建结果视频写入器
   cv::VideoWriter writer;
   if (!single_image) {
     double fps = cap.get(cv::CAP_PROP_FPS);
