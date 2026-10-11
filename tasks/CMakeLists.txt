@@ -9,6 +9,7 @@ find_package(OpenVINO REQUIRED COMPONENTS Runtime)
 
 add_library(auto_aim STATIC
     armor.cpp
+  pnp_solver.cpp
     yolo.cpp
     yolos/yolov5.cpp
   yolos/infantry_armor.cpp

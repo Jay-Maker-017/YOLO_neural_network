@@ -14,6 +14,7 @@
 #include <list>   
 #include <memory>
 #include <string>   
+#include <utility>
 
 #include <cmath> 
 
@@ -22,6 +23,7 @@
 #include <opencv2/opencv.hpp>
 
 #include "tasks/armor.hpp" 
+#include "tasks/pnp_solver.hpp"
 #include "tasks/yolo.hpp"        
 #include "tools/img_tools.hpp"   // 画图工具
 
@@ -141,6 +143,21 @@ int main(int argc, char ** argv)
 
   // 单张图片用 waitKey(0) 暂停；视频用 waitKey(1) 连续播放。
   const bool single_image = !still_image.empty();
+  std::unique_ptr<auto_aim::PnPSolver> pnp_solver;
+  if (single_image) {
+    try {
+      auto_aim::PnPConfig pnp_config = auto_aim::PnPConfig::load("configs/pnp.yaml");
+      if (!pnp_config.calibration_resolution_verified) {
+        std::cerr << "[警告] configs/pnp.yaml 中的标定分辨率尚未核实；PnP 距离结果可能不准确。"
+                  << std::endl;
+      }
+      pnp_solver = std::make_unique<auto_aim::PnPSolver>(std::move(pnp_config));
+      std::cout << "照片 PnP 已启用，标定配置: configs/pnp.yaml" << std::endl;
+    } catch (const std::exception & e) {
+      std::cerr << "PnP 初始化失败: " << e.what() << std::endl;
+      return 1;
+    }
+  }
 
   // 视频模式：创建结果视频写入器
   cv::VideoWriter writer;
@@ -189,6 +206,22 @@ int main(int argc, char ** argv)
     // detect 返回一个装甲板列表（可能一个都没有，size() 为 0）。
     // 第二个参数是帧号，仅用于日志和调试，不传也可以（默认 -1）。
     std::list<auto_aim::Armor> armors = yolo->detect(img, frame_count);
+    std::vector<auto_aim::PoseResult> poses;
+    if (single_image && pnp_solver) {
+      poses.reserve(armors.size());
+      for (const auto & armor : armors) {
+        auto_aim::PoseResult pose = pnp_solver->solve(armor, img.size());
+        if (pose.success) {
+          std::cout << fmt::format(
+            "  PnP: t_camera=({:.1f}, {:.1f}, {:.1f}) mm, 重投影 RMS={:.3f} px",
+            pose.tvec_mm[0], pose.tvec_mm[1], pose.tvec_mm[2], pose.reprojection_error_px)
+                    << std::endl;
+        } else {
+          std::cerr << "  PnP 解算失败: " << pose.error << std::endl;
+        }
+        poses.push_back(std::move(pose));
+      }
+    }
 
     // 打印结果到终端
     std::cout << "第 " << frame_count << " 帧: 检测到 " << armors.size() << " 个装甲板";
@@ -202,6 +235,9 @@ int main(int argc, char ** argv)
     // 绘制结果（保持输入原始分辨率，用于保存）
     cv::Mat result = img.clone();
     draw_armors(result, armors);
+    for (const auto & pose : poses) {
+      if (pose.success) pnp_solver->draw_axes(result, pose);
+    }
 
     // 保存绘制结果：图片写一张结果图，视频逐帧写入结果文件；
     // 必须在缩放显示之前保存，保证保存的是原始分辨率画面。

@@ -29,7 +29,7 @@ class V8_21InfantryPostProcessor;
 class LidarPostProcessor;
 class RunePostProcessor;
 
-// ==================== 主类定义 ====================
+// 主类定义
 class YOLOModel
 {
 public:

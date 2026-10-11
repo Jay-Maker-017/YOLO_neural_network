@@ -1,0 +1,28 @@
+%YAML:1.0
+---
+# 相机标定参数。标定图像尺寸依据内参主点暂按 1360x1080 填写，使用前请用标定原始分辨率核实。
+# calibration_roi 表示从标定图像中实际保留的区域；整幅图无裁剪时保持以下默认值。
+camera_matrix: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [ 2362.2795952460974, 0., 679.17513921636282,
+           0., 2336.1916035376717, 529.06858905837635,
+           0., 0., 1. ]
+distortion_coefficients: !!opencv-matrix
+   rows: 1
+   cols: 5
+   dt: d
+   data: [ -0.098561592108101559, 0.11173066531932681,
+           -0.0038352945867108721, -0.0020421443354436304, 0. ]
+calibration_width: 1360
+calibration_height: 1080
+# 当前尺寸仅根据内参主点估算，核实真实标定分辨率后改为 1。
+calibration_resolution_verified: 0
+calibration_roi:
+   x: 0
+   y: 0
+   width: 1360
+   height: 1080
+calibration_rms_px: 0.1448
+axis_length_mm: 55.

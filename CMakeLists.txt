@@ -9,7 +9,7 @@ message(STATUS "--------------------CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}-------
 # 导出 compile_commands.json（编辑器 clangd 靠它找到 OpenCV 等头文件路径）
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs highgui dnn)
+find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs highgui dnn calib3d)
 find_package(fmt REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(spdlog REQUIRED)
@@ -45,4 +45,12 @@ target_link_libraries(main PRIVATE
     spdlog::spdlog
     ${OpenCV_LIBS}
 )
+
+include(CTest)
+if(BUILD_TESTING)
+  add_executable(pnp_solver_test tests/pnp_solver_test.cpp)
+  target_link_libraries(pnp_solver_test PRIVATE auto_aim ${OpenCV_LIBS})
+  add_test(NAME pnp_solver_synthetic COMMAND pnp_solver_test)
+  set_tests_properties(pnp_solver_synthetic PROPERTIES WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+endif()
 
