@@ -71,6 +71,49 @@ void draw_armors(cv::Mat & img, const std::list<auto_aim::Armor> & armors)
 
 }  // draw_armors 结束
 
+// 在装甲板下方居中绘制 PnP 解算出的相机距离（poses 与 armors 顺序一一对应）
+void draw_distances(
+  cv::Mat & img, const std::list<auto_aim::Armor> & armors,
+  const std::vector<auto_aim::PoseResult> & poses)
+{
+  // 字体设置
+  constexpr double font_scale = 0.6;
+  constexpr int thickness = 2;
+  const cv::Scalar distance_color(250, 206, 135);  // BGR 浅蓝色
+
+  auto pose = poses.begin();
+  for (const auto & armor : armors) {
+    if (pose == poses.end()) break;
+
+    if (pose->success) {
+      const auto info = fmt::format("{:.2f} m", cv::norm(pose->tvec_mm) / 1000.0);
+
+      // 由 4 个角点求装甲板最低点 y 与水平中心 x，用于把文字放在框下方居中
+      float bottom_y = armor.points.front().y;
+      float center_x = 0.f;
+      for (const auto & point : armor.points) {
+        bottom_y = std::max(bottom_y, point.y);
+        center_x += point.x;
+      }
+      center_x /= static_cast<float>(armor.points.size());
+
+      int base_line = 0;
+      const cv::Size text_size =
+        cv::getTextSize(info, cv::FONT_HERSHEY_SIMPLEX, font_scale, thickness, &base_line);
+
+      // 水平居中；再往下留 8 像素间距，同时保证文字不超出图像下边界
+      const cv::Point org(
+        static_cast<int>(center_x - text_size.width / 2.f),
+        std::min(img.rows - 4, static_cast<int>(bottom_y) + text_size.height + 8));
+
+      tools::draw_text(img, info, org, distance_color, font_scale, thickness);
+    }
+
+    ++pose;
+  }
+
+}  // draw_distances 结束
+
 }  // namespace 结束
 
 int main(int argc, char ** argv)
@@ -235,6 +278,7 @@ int main(int argc, char ** argv)
     // 绘制结果（保持输入原始分辨率，用于保存）
     cv::Mat result = img.clone();
     draw_armors(result, armors);
+    draw_distances(result, armors, poses);
     for (const auto & pose : poses) {
       if (pose.success) pnp_solver->draw_axes(result, pose);
     }
