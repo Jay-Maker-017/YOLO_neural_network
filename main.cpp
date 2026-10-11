@@ -44,7 +44,7 @@ namespace   //用了“内部链接”写法，使得在main.cpp之外难以引�
  */
 void draw_armors(cv::Mat & img, const std::list<auto_aim::Armor> & armors)
 {
-  // 字体：0.6 大小、2 粗细（比原来的 1 略粗），文字统一用黄色
+  // 字体设置
   constexpr double font_scale = 0.6;
   constexpr int thickness = 2;
   const cv::Scalar text_color(0, 255, 255);
@@ -54,7 +54,7 @@ void draw_armors(cv::Mat & img, const std::list<auto_aim::Armor> & armors)
       "{} {} {:.2f}", auto_aim::COLORS[armor.color], auto_aim::ARMOR_NAMES[armor.name],
       armor.confidence);
 
-    // 画 4 个角点 , 绿色
+    // 画 4 个绿色角点 
     tools::draw_points(img, armor.points, {0, 255, 0}, 2);
 
     // 由 4 个角点求装甲板最高点 y 与水平中心 x，用于把文字放在框上方居中
@@ -222,7 +222,7 @@ int main(int argc, char ** argv)
 
     cv::Mat display;
     if (result.cols < min_display_width) {
-      // 太窄（画面太小）：等比放大到 min_display_width
+      // 太窄：等比放大到 min_display_width
       const double scale = static_cast<double>(min_display_width) / result.cols;
       cv::resize(result, display, {}, scale, scale);
     } else if (result.cols > max_display_width) {
