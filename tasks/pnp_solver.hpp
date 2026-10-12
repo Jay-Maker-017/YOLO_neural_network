@@ -16,6 +16,7 @@ struct PnPConfig
   cv::Mat distortion_coefficients;
   cv::Size calibration_size;
   bool calibration_resolution_verified = false;
+  bool camera_model_verified = false;
   // ROI in calibration-image coordinates. The ROI is resized to the input photo.
   cv::Rect calibration_roi;
   double axis_length_mm = 55.0;

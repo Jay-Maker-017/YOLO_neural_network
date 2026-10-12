@@ -7,8 +7,13 @@
 int main()
 {
   const auto loaded_config = auto_aim::PnPConfig::load("configs/pnp.yaml");
-  assert(loaded_config.calibration_size == cv::Size(1360, 1080));
-  assert(std::abs(loaded_config.calibration_rms_px - 0.1448) < 1e-9);
+  assert(loaded_config.calibration_size == cv::Size(960, 720));
+  assert(loaded_config.calibration_resolution_verified);
+  assert(!loaded_config.camera_model_verified);
+  assert(std::abs(loaded_config.camera_matrix.at<double>(0, 0) - 1667.491479) < 1e-5);
+  assert(std::abs(loaded_config.camera_matrix.at<double>(1, 1) - 1557.461069) < 1e-5);
+  assert(std::abs(loaded_config.camera_matrix.at<double>(0, 2) - 479.417745) < 1e-5);
+  assert(std::abs(loaded_config.camera_matrix.at<double>(1, 2) - 352.712393) < 1e-5);
 
   auto_aim::PnPConfig config;
   config.camera_matrix = (cv::Mat_<double>(3, 3) <<

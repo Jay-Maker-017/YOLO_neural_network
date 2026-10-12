@@ -194,6 +194,11 @@ int main(int argc, char ** argv)
         std::cerr << "[警告] configs/pnp.yaml 中的标定分辨率尚未核实；PnP 距离结果可能不准确。"
                   << std::endl;
       }
+      if (!pnp_config.camera_model_verified) {
+        std::cerr << "[警告] configs/pnp.yaml 中的相机内参/畸变尚未针对当前图像来源验证；"
+                     "PnP 位姿可能与真值明显不符。"
+                  << std::endl;
+      }
       pnp_solver = std::make_unique<auto_aim::PnPSolver>(std::move(pnp_config));
       std::cout << "照片 PnP 已启用，标定配置: configs/pnp.yaml" << std::endl;
     } catch (const std::exception & e) {

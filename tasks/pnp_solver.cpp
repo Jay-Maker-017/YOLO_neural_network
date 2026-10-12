@@ -51,6 +51,9 @@ PnPConfig PnPConfig::load(const std::string & path)
   int resolution_verified = 0;
   storage["calibration_resolution_verified"] >> resolution_verified;
   config.calibration_resolution_verified = resolution_verified != 0;
+  int camera_model_verified = 0;
+  storage["camera_model_verified"] >> camera_model_verified;
+  config.camera_model_verified = camera_model_verified != 0;
 
   int roi_x = 0;
   int roi_y = 0;

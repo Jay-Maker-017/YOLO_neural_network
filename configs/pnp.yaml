@@ -1,13 +1,14 @@
 %YAML:1.0
 ---
-# 相机标定参数。标定图像尺寸依据内参主点暂按 1360x1080 填写，使用前请用标定原始分辨率核实。
-# calibration_roi 表示从标定图像中实际保留的区域；整幅图无裁剪时保持以下默认值。
+# PnP 基准图像为 test_imgs/*.jpg（960x720）。下面的 K 是旧 K 按该尺寸缩放后的等价矩阵，
+# 仅统一了分辨率基准，并不代表这些 K/D 已适用于真值图对应的渲染相机。
+# calibration_roi 表示基准图中实际保留的区域；整幅图无裁剪时使用全图。
 camera_matrix: !!opencv-matrix
    rows: 3
    cols: 3
    dt: d
-   data: [ 2362.2795952460974, 0., 679.17513921636282,
-           0., 2336.1916035376717, 529.06858905837635,
+   data: [ 1667.491479, 0., 479.417745,
+      0., 1557.461069, 352.712393,
            0., 0., 1. ]
 distortion_coefficients: !!opencv-matrix
    rows: 1
@@ -15,14 +16,14 @@ distortion_coefficients: !!opencv-matrix
    dt: d
    data: [ -0.098561592108101559, 0.11173066531932681,
            -0.0038352945867108721, -0.0020421443354436304, 0. ]
-calibration_width: 1360
-calibration_height: 1080
-# 当前尺寸仅根据内参主点估算，核实真实标定分辨率后改为 1。
-calibration_resolution_verified: 0
+calibration_width: 960
+calibration_height: 720
+calibration_resolution_verified: 1
+# 0 表示相机来源、焦距及畸变尚未用真值图验证；不要仅因分辨率已确认就改为 1。
+camera_model_verified: 0
 calibration_roi:
    x: 0
    y: 0
-   width: 1360
-   height: 1080
-calibration_rms_px: 0.1448
+   width: 960
+   height: 720
 axis_length_mm: 55.
