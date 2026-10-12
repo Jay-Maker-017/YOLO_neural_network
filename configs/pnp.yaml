@@ -7,8 +7,8 @@ camera_matrix: !!opencv-matrix
    rows: 3
    cols: 3
    dt: d
-   data: [ 1667.491479, 0., 479.417745,
-      0., 1557.461069, 352.712393,
+   data: [ 2362.2795952460974, 0., 679.17513921636282,
+      0., 2336.1916035376717, 529.06858905837635,
            0., 0., 1. ]
 distortion_coefficients: !!opencv-matrix
    rows: 1
@@ -26,4 +26,4 @@ calibration_roi:
    y: 0
    width: 960
    height: 720
-axis_length_mm: 55.
+axis_length_mm: 55. #画坐标轴时用的轴长
