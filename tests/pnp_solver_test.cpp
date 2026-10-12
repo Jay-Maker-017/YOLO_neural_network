@@ -10,10 +10,23 @@ int main()
   assert(loaded_config.calibration_size == cv::Size(960, 720));
   assert(loaded_config.calibration_resolution_verified);
   assert(!loaded_config.camera_model_verified);
-  assert(std::abs(loaded_config.camera_matrix.at<double>(0, 0) - 2362.2795952460974) < 1e-5);
-  assert(std::abs(loaded_config.camera_matrix.at<double>(1, 1) - 2336.1916035376717) < 1e-5);
-  assert(std::abs(loaded_config.camera_matrix.at<double>(0, 2) - 679.17513921636282) < 1e-5);
-  assert(std::abs(loaded_config.camera_matrix.at<double>(1, 2) - 529.06858905837635) < 1e-5);
+  // rune_sim_camera 图像内参：fx=fy=869.1168824543144，主点 (480, 360)。
+  assert(std::abs(loaded_config.camera_matrix.at<double>(0, 0) - 869.1168824543144) < 1e-5);
+  assert(std::abs(loaded_config.camera_matrix.at<double>(1, 1) - 869.1168824543144) < 1e-5);
+  assert(std::abs(loaded_config.camera_matrix.at<double>(0, 2) - 480.0) < 1e-5);
+  assert(std::abs(loaded_config.camera_matrix.at<double>(1, 2) - 360.0) < 1e-5);
+  // 主点恰为标定分辨率中心 → 全画幅无裁剪，calibration_roi 应为整幅图。
+  assert(std::abs(loaded_config.camera_matrix.at<double>(0, 2) -
+                  loaded_config.calibration_size.width / 2.0) < 1e-9);
+  assert(std::abs(loaded_config.camera_matrix.at<double>(1, 2) -
+                  loaded_config.calibration_size.height / 2.0) < 1e-9);
+  assert(loaded_config.calibration_roi == cv::Rect(0, 0, 960, 720));
+  // plumb_bob 零畸变：1x5 全零。
+  assert(loaded_config.distortion_coefficients.rows == 1);
+  assert(loaded_config.distortion_coefficients.cols == 5);
+  for (int index = 0; index < loaded_config.distortion_coefficients.cols; ++index) {
+    assert(loaded_config.distortion_coefficients.at<double>(0, index) == 0.0);
+  }
 
   auto_aim::PnPConfig config;
   config.camera_matrix = (cv::Mat_<double>(3, 3) <<

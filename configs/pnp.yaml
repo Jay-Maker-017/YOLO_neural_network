@@ -1,25 +1,27 @@
 %YAML:1.0
 ---
-# PnP 基准图像为 test_imgs/*.jpg（960x720）。下面的 K 是旧 K 按该尺寸缩放后的等价矩阵，
-# 仅统一了分辨率基准，并不代表这些 K/D 已适用于真值图对应的渲染相机。
+# 相机来源: rune_sim_camera 图像内参（960x720, plumb_bob 零畸变）。
+# K 原生即为该分辨率下的值，无需缩放：fx=fy=869.1168824543144, cx=480, cy=360。
+# 主点恰为 960x720 图像中心，说明是无裁剪全画幅；该相机数据的 rectification_matrix
+# 为单位阵、projection_matrix=[K|0]，本项目不使用，故未收录。
+# 注意：K 按像素比例缩放只在同视场的整幅图上成立，imgs/ 中尺寸不同的图片距离结果仍不可信。
 # calibration_roi 表示基准图中实际保留的区域；整幅图无裁剪时使用全图。
 camera_matrix: !!opencv-matrix
    rows: 3
    cols: 3
    dt: d
-   data: [ 2362.2795952460974, 0., 679.17513921636282,
-      0., 2336.1916035376717, 529.06858905837635,
+   data: [ 869.1168824543144, 0., 480.,
+           0., 869.1168824543144, 360.,
            0., 0., 1. ]
 distortion_coefficients: !!opencv-matrix
    rows: 1
    cols: 5
    dt: d
-   data: [ -0.098561592108101559, 0.11173066531932681,
-           -0.0038352945867108721, -0.0020421443354436304, 0. ]
+   data: [ 0., 0., 0., 0., 0. ]
 calibration_width: 960
 calibration_height: 720
 calibration_resolution_verified: 1
-# 0 表示相机来源、焦距及畸变尚未用真值图验证；不要仅因分辨率已确认就改为 1。
+# 0 表示相机来源、焦距及畸变尚未用真值图验证；置 1 前需先用 test_imgs 与 markdown 真值对照确认。
 camera_model_verified: 0
 calibration_roi:
    x: 0
